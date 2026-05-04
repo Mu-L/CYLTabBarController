@@ -10,12 +10,11 @@ Pod::Spec.new do |s|
   s.platform     = :ios, '12.0'
   s.swift_versions = ['5.0']
   s.source       = { :git => "https://github.com/ChenYilong/CYLTabBarController.git", :tag => s.version.to_s }
-  s.static_framework = true
   s.requires_arc = true
   s.default_subspec = 'Core'
   s.static_framework = true
   s.subspec 'Core' do |core|
-  core.source_files = 'CYLTabBarController', 'CYLTabBarController/**/*.{h,m,Swift}'
+  core.source_files = 'CYLTabBarController', 'CYLTabBarController/**/*.{h,m}'
   core.exclude_files = 'CYLTabBarController/**/LottieSwift/*.{h,m,Swift}'
   core.exclude_files = 'CYLTabBarController/**/CYLFlatDesignTabBar/*.{Swift}'
   core.resource = 'CYLTabBarController/**/CYLFlatDesignTabBarController.bundle'
