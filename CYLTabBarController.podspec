@@ -8,12 +8,12 @@ Pod::Spec.new do |s|
   s.author       = { "ChenYilong" => "luohanchenyilong@163.com" }
   s.social_media_url = 'http://weibo.com/luohanchenyilong/'
   s.platform     = :ios, '12.0'
+  s.swift_versions = ['5.0']
   s.source       = { :git => "https://github.com/ChenYilong/CYLTabBarController.git", :tag => s.version.to_s }
- 
+  s.static_framework = true
   s.requires_arc = true
-
   s.default_subspec = 'Core'
-
+  s.static_framework = true
   s.subspec 'Core' do |core|
   core.source_files = 'CYLTabBarController', 'CYLTabBarController/**/*.{h,m,Swift}'
   core.exclude_files = 'CYLTabBarController/**/LottieSwift/*.{h,m,Swift}'
@@ -30,14 +30,14 @@ Pod::Spec.new do |s|
   s.subspec 'LottieObjectiveC' do |lottieobjc|
     lottieobjc.dependency 'CYLTabBarController/Core'
     #指定2.5.3，使用 oc 版本 lottie
-    lottieobjc.dependency "lottie-ios", '~> 2.5.3'
+    lottieobjc.dependency "lottie-ios", '~> 2.5.3', :modular_headers => true
   end
 
   s.subspec "LottieSwift" do |lottieswift|
     lottieswift.source_files = 'CYLTabBarController/**/LottieSwift/*.{h,m,Swift}'
     #不指定 lottie 版本 
     #使用 swift 版本 lottie
-    lottieswift.dependency 'lottie-ios', '>=4.0.0'
+    lottieswift.dependency 'lottie-ios', '>= 4.0.0', :modular_headers => true
     lottieswift.dependency 'CYLTabBarController/Core'
   end
 
