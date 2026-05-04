@@ -30,14 +30,14 @@ Pod::Spec.new do |s|
   s.subspec 'LottieObjectiveC' do |lottieobjc|
     lottieobjc.dependency 'CYLTabBarController/Core'
     #指定2.5.3，使用 oc 版本 lottie
-    lottieobjc.dependency "lottie-ios", '~> 2.5.3', :modular_headers => true
+    lottieobjc.dependency "lottie-ios", '~> 2.5.3'
   end
 
   s.subspec "LottieSwift" do |lottieswift|
     lottieswift.source_files = 'CYLTabBarController/**/LottieSwift/*.{h,m,Swift}'
     #不指定 lottie 版本 
     #使用 swift 版本 lottie
-    lottieswift.dependency 'lottie-ios', '>= 4.0.0', :modular_headers => true
+    lottieswift.dependency 'lottie-ios', '>= 4.0.0'
     lottieswift.dependency 'CYLTabBarController/Core'
   end
 
