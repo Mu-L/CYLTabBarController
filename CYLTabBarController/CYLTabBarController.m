@@ -83,12 +83,27 @@ static void * const CYLTabImageViewDefaultOffsetContext = (void*)&CYLTabImageVie
         self.observingTabImageViewDefaultOffset = YES;
     }
 }
+- (void)tabChangedToControl:(UIControl *)control {
+    UIViewController *vc = nil;
+    [self tabChangedToSelectedViewController:vc control:control];
+}
 
+- (void)tabChangedToSelectedViewController:(UIViewController *)viewController
+                          control:(UIControl *)control {
+    [self tabChangedToSelectedIndex:self.selectedIndex viewController:viewController control:control];
+}
+
+/*!
+ * 三个地方 ， 都要调用：
+ *  选中状态下的重新点击，（iOS26 需要在手势代理方法中进行hook追加该方法）
+ *  用户切换index时
+ *  代码切换index 时。
+ */
 - (void)tabChangedToSelectedIndex:(NSUInteger)selectedIndex
                    viewController:(UIViewController *)viewController
                           control:(UIControl *)control {
     //扁平样式，与玻璃样式均可使用
-    if (![self.tabBar isKindOfClass:[UITabBar class]]) {
+    if (![self.tabBar isKindOfClass:[UITabBar class]] && ![self.tabBar isKindOfClass:[CYLTabBar class]]) {
         return;
     }
     if (!viewController) {
@@ -96,6 +111,9 @@ static void * const CYLTabImageViewDefaultOffsetContext = (void*)&CYLTabImageVie
     }
     if (!control) {
         control = [viewController cyl_getViewControllerInsteadOfNavigationController].cyl_tabButton;
+    }
+    if (!control) {
+        control = viewController.cyl_tabButton;
     }
     // Ensure we do not pass nil to a nonnull parameter
     UIViewController *targetVC = viewController ?: self.selectedViewController;
@@ -189,18 +207,23 @@ static void * const CYLTabImageViewDefaultOffsetContext = (void*)&CYLTabImageVie
         // add callback for visiable control, included all plusButton.
         
         [tabBar.cyl_visibleControls enumerateObjectsUsingBlock:^(UIControl * _Nonnull control, NSUInteger idx, BOOL * _Nonnull stop) {
+            if ([CYLConstants isUsedLiquidGlass]) {
+                //液态玻璃无法添加事件 放进手势响代理里处理。
+                return;
+            }
             //to avoid invoking didSelectControl twice, because plusChildViewControllerButtonClicked will invoke setSelectedIndex
             if ([control cyl_isChildViewControllerPlusButton]) {
-                
                 return;
             }
             UILabel *tabLabel = control.cyl_tabLabel;
             tabLabel.textAlignment = NSTextAlignmentCenter;
-            SEL actin = @selector(didSelectControl:);
-//            UIControl *selectedContentControl = [self.tabBar cyl_selectedContentControlFromContentControl:control];
-            [control addTarget:self action:actin forControlEvents:UIControlEventTouchUpInside];
-//            [selectedContentControl addTarget:self action:actin forControlEvents:UIControlEventTouchUpInside];
-
+            
+            //FIX: iOS之前也不再使用点击事件， 而是在 `-setSelectedViewController` and `-setSelectedIndex`中处理
+            SEL action = @selector(tabChangedToControl:);
+            //fix#610 removeTarget 以避免 `-setNeedsLayout` 导致的重复调用 viewDidLayoutSubviews， 可能导致的action追加失败的bug
+            [control removeTarget:self action:action forControlEvents:UIControlEventTouchUpInside];
+            [control addTarget:self action:action forControlEvents:UIControlEventTouchUpInside];
+            
             if (idx == self.selectedIndex && ![control isKindOfClass:[CYLPlusButton class]]) {
                 control.selected = YES;
             }
@@ -238,20 +261,22 @@ static void * const CYLTabImageViewDefaultOffsetContext = (void*)&CYLTabImageVie
             
             UIControl *plusControlOrigin = [self.tabBar cyl_platterContentViewWithIndex:CYLExternPlusButton.cyl_tabBarItemVisibleIndex];
             UIButton *selectedCover = CYLExternPlusButton.selectedContentView;
+            UIControl *plusSelectedControl = plusControlOrigin.cyl_platterSelectedControl;
             [plusControlOrigin.cyl_tabImageView cyl_setHidden:YES];
+            [plusControlOrigin.cyl_swappableImageViewViewInTabBarButton cyl_setHidden:YES];
             
             if ([self hasPlusChildViewController]) {
-                [plusControlOrigin.cyl_platterSelectedControl cyl_coverTabImageViewOrTabButton:YES
-                                                                                       newView:selectedCover
-                                                                                        offset:UIOffsetZero
-                                                                                          show:YES
-                                                                       delayIfNeededForSeconds:1
-                                                                                    completion:^(BOOL isReplaced, UIControl * _Nonnull tabBarButton, UIView * _Nonnull newView) {
+                [plusSelectedControl cyl_coverTabImageViewOrTabButton:YES
+                                                              newView:selectedCover
+                                                               offset:UIOffsetZero
+                                                                 show:YES
+                                              delayIfNeededForSeconds:1
+                                                           completion:^(BOOL isReplaced, UIControl * _Nonnull tabBarButton, UIView * _Nonnull newView) {
                     
                 }];
             } else {
-                UIControl *plusSelectedControl = plusControlOrigin.cyl_platterSelectedControl;
                 [plusSelectedControl.cyl_tabImageView cyl_setHidden:YES];
+                [plusControlOrigin.cyl_swappableImageViewViewInTabBarButton cyl_setHidden:YES];
             }
         });
         
@@ -1015,7 +1040,6 @@ CYL_DEPRECATED_IGNORED_IMPLEMENTATIONS_POP
 #pragma mark - delegate
 - (void)updateSelectionStatusIfNeededForTabBarController:(UITabBarController *)tabBarController
                               shouldSelectViewController:(UIViewController *)viewController {
-//    [viewController.view layoutIfNeeded];
     [self updateSelectionStatusIfNeededForTabBarController:tabBarController shouldSelectViewController:viewController shouldSelect:YES];
 }
 
@@ -1160,6 +1184,7 @@ CYL_DEPRECATED_IGNORED_IMPLEMENTATIONS_POP
             //非液态玻璃 与 液态玻璃逻辑共用，Lottie播放逻辑都在 tabChangedToSelectedIndex 中。
         }
     }
+
     if ([self.delegate respondsToSelector:actin] && shouldSelectViewController) {
         CYL_SUPPRESS_ARC_PERFORM_SELECTOR_LEAKS
         (
@@ -1224,23 +1249,26 @@ CYL_DEPRECATED_IGNORED_IMPLEMENTATIONS_POP
     
     NSURL *lottieURL = theLottieURL;
     NSValue *lottieSizeValue = theLottieSizeValue;
-
-    @try {
-        NSUInteger index = [self.tabBar.cyl_subTabBarButtons indexOfObject:contentControl];
-        if (NSNotFound != index) {
-            if (!lottieURL) {
-                //TODO:lottieURLs 与 Control对应的index不一致， 因为 lottieURLs 可能会少一个 plusButton 对应的。如何能够不通过index就获取到 lottieURLs ?
-                lottieURL = self.lottieURLs[index];
-            }
+    if ([self.tabBar isKindOfClass:[CYLTabBar class]]) {
+        
+        @try {
             
-            if (!lottieSizeValue) {
-                lottieSizeValue = self.lottieSizes[index];
+            NSUInteger index = [self.tabBar.cyl_subTabBarButtons indexOfObject:contentControl];
+            if (NSNotFound != index) {
+                if (!lottieURL) {
+                    //TODO:lottieURLs 与 Control对应的index不一致， 因为 lottieURLs 可能会少一个 plusButton 对应的。如何能够不通过index就获取到 lottieURLs ?
+                    lottieURL = self.lottieURLs[index];
+                }
+                
+                if (!lottieSizeValue) {
+                    lottieSizeValue = self.lottieSizes[index];
+                }
             }
-        }
-    } @catch (NSException *exception) {
+        } @catch (NSException *exception) {
 #if defined(DEBUG) || defined(BETA)
-        NSLog(@"🔴类名与方法名：%@（在第%@行）, 描述：%@", @(__PRETTY_FUNCTION__), @(__LINE__), exception.reason);
+            NSLog(@"🔴类名与方法名：%@（在第%@行）, 描述：%@", @(__PRETTY_FUNCTION__), @(__LINE__), exception.reason);
 #endif
+        }
     }
     
     CGSize lottieSize = [lottieSizeValue CGSizeValue];
@@ -1326,11 +1354,27 @@ CYL_DEPRECATED_IGNORED_IMPLEMENTATIONS_POP
 - (void)setSelectedViewController:(__kindof UIViewController *)selectedViewController {
     //必须调用父类逻辑。
     [super setSelectedViewController:selectedViewController];
-    //    [self.tabBar layoutIfNeeded];
+    // Fix: #574 解决iOS15 扁平风格， 有时候TabBar会变透明的问题
+    if (CYL_SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"15.0") && ![CYLConstants isUsedLiquidGlass]) {
+        if (nil == [UITabBar appearance].backgroundImage) {
+            @try {
+                //因为非核心功能， 仅为部分版本的细节修复， 所以用try catch 防止异常， 防止影响主要功能。
+                if (self.tabBar.cyl_tabBackgroundView && self.tabBar.cyl_tabBackgroundView.cyl_tabEffectView) {
+                    self.tabBar.cyl_tabBackgroundView.cyl_tabEffectView.alpha = 1;
+                }
+                if (self.tabBar.cyl_tabShadowImageView && (self.tabBar.cyl_tabShadowImageView.subviews.count > 0)) {
+                    self.tabBar.cyl_tabShadowImageView.subviews.firstObject.alpha = 1;
+                }
+            } @catch (NSException *exception) {}
+        }
+    }
+
+    if (![CYLConstants isUsedLiquidGlass]) {
+        return;
+    }
+
     // 用户点击 tab 时会触发 //showing initial vc for every tab :)
     UIControl *control = selectedViewController.cyl_tabButton;
-    
-    
     if ([selectedViewController isEqual:CYLPlusChildViewController]) {
         CYLExternPlusButton.selected = YES;
         [self tabChangedToSelectedIndex:CYLPlusButtonIndex
@@ -1341,20 +1385,19 @@ CYL_DEPRECATED_IGNORED_IMPLEMENTATIONS_POP
                          viewController:selectedViewController
                                 control:control];
     }
-    // Fix: 解决iOS15有时候TabBar会变透明的问题
-    if ([UITabBar appearance].backgroundImage == nil) {
-        self.tabBar.cyl_tabBackgroundView.cyl_tabEffectView.alpha = 1;
-        self.tabBar.cyl_tabShadowImageView.subviews.firstObject.alpha = 1;
-    }
 }
 
 #pragma mark - Override selectedIndex (Programmatic changes)
 
 - (void)setSelectedIndex:(NSUInteger)selectedIndex {
     [super setSelectedIndex:selectedIndex];
+    
     if ([self.tabBar isKindOfClass:[CYLFlatDesignTabBar class]]) {
         CYLFlatDesignTabBar *tabBar = (CYLFlatDesignTabBar *)self.tabBar;
         [tabBar setSelectedIndex:selectedIndex];
+    }
+    if (![CYLConstants isUsedLiquidGlass]) {
+        return;
     }
     // 代码切换 tab 时会触发
     [self tabChangedToSelectedIndex:selectedIndex viewController:nil control:nil];

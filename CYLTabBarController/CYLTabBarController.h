@@ -47,7 +47,12 @@ FOUNDATION_EXTERN CGFloat CYLTabBarHeight;
 /*!
  * @param tabBarController The tab bar controller containing viewController.
  * @param control Selected UIControl in TabBar. 与 `-[UITaBar  tabBar: didSelectItem:]` 相比，差别在于该参数UIControl可能包含自定义加号➕按钮。且支持如果是代码或者用户交互切换index时都进行回调。弥补了 `-[UITaBar  tabBar: didSelectItem:]` 仅在用户点击时调用的不足。
- 
+ *
+ *调用时机与shouldSelectViewController 代理方法一致。
+  * 三个地方 ， 时机会调用：
+  *  选中状态下的重新点击，（iOS26 需要在手势代理方法中进行hook追加该方法）
+  *  用户切换index时 ，底层通过 `-setSelectedViewController`方法来实现。
+  *  代码切换index 时，底层通过 `-setSelectedIndex` 方法来实现。
  * @attention 即使 PlusButton 也添加了点击事件，点击 PlusButton 后也会触发该代理方法。可在PlusButton初始化时使用 CYLExternPlusButton.cyl_shouldNotSelect = YES; 来禁止该协议方法触发涉及plusButton的回调
  */
 - (void)tabBarController:(UITabBarController *)tabBarController didSelectControl:(UIControl *)control;
@@ -191,6 +196,7 @@ typedef NS_ENUM(NSInteger, CYLTabBarStyleType) {
 
 - (CGSize)visiableTabBarSize;
 
+- (void)tabChangedToControl:(UIControl *)control;
 /*!
  * double-check if to use CYLTabBarStyleTypeLiquidGlass or not:
  * UIDesignCompatibility == FlatDesign , noNeedUIDesignCompatibility == noNeed FlatDesign == LiquidGlass

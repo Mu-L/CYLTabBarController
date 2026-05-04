@@ -672,7 +672,10 @@
         // self.imgTabIcon.image = self.currentTab?.tabBarItem?.image
         if (isSelected) {
             CGSize lottieSize = [self.lottieSizeValue CGSizeValue];
-            NSURL *url = [NSURL fileURLWithPath:self.lottieFilePath];
+            NSURL *url;
+            if (self.lottieFilePath) {
+                url = [NSURL fileURLWithPath:self.lottieFilePath];
+            }
             [self cyl_animationLottieImageWithLottieURL:url size:lottieSize defaultSelected:NO contentMode:self.cyl_tabBarController.lottieAnimationViewContentMode];
         } else {
             [self cyl_stopAnimationOfLottieView];

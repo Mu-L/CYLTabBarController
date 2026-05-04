@@ -36,7 +36,7 @@ static const CGFloat kCYLBadgeDefaultRedDotRadius = 4.f;
  *  show badge with red dot style and CYLBadgeAnimationTypeNone by default.
  */
 - (void)cyl_showBadge {
-        [self cyl_showBadgeValue:@"" animationType:CYLBadgeAnimationTypeNone];
+    [self cyl_showBadgeValue:@"" animationType:CYLBadgeAnimationTypeNone];
 }
 
 - (void)cyl_showBadgeValue:(NSString *)value
@@ -125,7 +125,7 @@ static const CGFloat kCYLBadgeDefaultRedDotRadius = 4.f;
     return (self.cyl_badge && self.cyl_badge.hidden == YES);
 }
 
-- (id)cyl_getActualBadgeSuperView { 
+- (id)cyl_getActualBadgeSuperView {
     return self;
 }
 
@@ -564,7 +564,7 @@ static const CGFloat kCYLBadgeDefaultRedDotRadius = 4.f;
     CGFloat width = obj.frame.size.width;
     CGFloat height = obj.frame.size.height;
     BOOL isSizeZero = (width == 0 || height == 0);
-    BOOL isInvisible = (obj.hidden == YES) || (obj.alpha <= 0.01f)  || (!obj.superview) || isSizeZero;
+    BOOL isInvisible = (NO == obj.opaque) || (YES == obj.hidden ) || (obj.alpha <= 0.01f)  || (!obj.superview) || isSizeZero;
     return isInvisible;
 }
 

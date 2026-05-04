@@ -609,11 +609,20 @@
 }
 
 - (BOOL)cyl_isPlatterSelectedControl {
-    if (self.cyl_tabBarController.tabBar && [self.cyl_tabBarController.tabBar isKindOfClass:[CYLTabBar class]]) {
-        return [self.superview cyl_isPlatterSelectedContentView];
-
+    if (![CYLConstants isUsedLiquidGlass]) {
+        return NO;
     }
-    return NO;
+    if (!self.superview) {
+        return NO;
+    }
+    if (!self.cyl_tabBarController) {
+        return NO;
+    }
+    if (![self.cyl_tabBarController.tabBar isKindOfClass:[CYLTabBar class]]) {
+        return NO;
+    }
+
+    return [self.superview cyl_isPlatterSelectedContentView];
 }
 
 - (BOOL)cyl_isPlatterNormalControl {
@@ -634,29 +643,14 @@
 - (void)cyl_hideControl {
     UIControl *control = self;
     UIControl *selectedControl = self.cyl_platterSelectedControl;
-    //            control.layer.zPosition = - MAXFLOAT;
-    //            selectedControl.layer.zPosition = - MAXFLOAT;
-    //            [self sendSubviewToBack:control];
     control.hidden = YES;
     control.cyl_tabLabel.hidden = YES;
     control.cyl_swappableImageViewViewInTabBarButton.hidden = YES;
-    //            [control.superview sendSubviewToBack:control];
-    //            control.cyl_shouldNotSelect = YES;
-    //            control.backgroundColor = [UIColor greenColor];
     control.userInteractionEnabled = NO;
-    //            control.focused = NO;
-    //            control.focused = NO;
-    //            selectedControl.userInteractionEnabled = NO;
-    //            [self sendSubviewToBack:selectedControl];
-    
     selectedControl.hidden = YES;
     selectedControl.cyl_swappableImageViewViewInTabBarButton.hidden = YES;
     selectedControl.cyl_tabLabel.hidden = YES;
     selectedControl.userInteractionEnabled = NO;
-    
-    //            selectedControl.cyl_shouldNotSelect = YES;
-    
-    //            selectedControl.backgroundColor = [UIColor redColor];
     
 }
 - (void)cyl_performSelector:(SEL)aSelector {

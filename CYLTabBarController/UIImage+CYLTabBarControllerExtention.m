@@ -91,14 +91,15 @@
     UIImage *image = nil;
     if (imageInfo) {
         image = [self cyl_getImageFromImageInfo:imageInfo];
-    } else {
+    }
+    else {
         image = [self cyl_tabItemPlaceholderImage];
     }
     return image;
 }
 
 + (UIImage *)cyl_tabItemPlaceholderImage {
-    CGSize placeholderSize = CGSizeMake(22, 22);
+    CGSize placeholderSize = CGSizeMake(1, 1);
     UIImage *placeholderImage = [UIImage cyl_imageWithColor:[UIColor whiteColor] size:placeholderSize];
     return placeholderImage;
 }

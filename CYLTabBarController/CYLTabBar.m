@@ -180,7 +180,7 @@ static void *const CYLTabBarAlpha = (void*)&CYLTabBarAlpha;
     }
     
     // FIX: iOS15有时候会导致TaBar透明的问题 但是这样会导致无法主动让TabBar透明 考虑以后添加属性 // 现在通过判断isHidden来处理，如果隐藏了就不再修改alpha
-    if (CYL_SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"15.0")) {
+    if (CYL_SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"15.0") && ![CYLConstants isUsedLiquidGlass]) {
         [self removeAlphaObserver];
         UIView *backgroundView = self.cyl_tabBackgroundView;
         UIView *shadowView = self.cyl_tabShadowImageView.subviews.firstObject;
@@ -344,6 +344,12 @@ static void *const CYLTabBarAlpha = (void*)&CYLTabBarAlpha;
 }
 
 // KVO监听执行
+/*!
+ //TODO:   iOS26 适配以下接口， 思路是监听， 特定窗口的缩小尺寸变动。执行隐藏和现实PlusButton操作。
+ * 增加了类型为UITabBarController.MinimizeBehavior的tabBarMinimizeBehavior属性，用于设置 Tabbar 最小化时的行为。
+增加了类型为UITabAccessory的bottomAccessory属性，用于在 Tabbar 的上方再添加一个 UITabAccessory（辅助内容）。
+UISearchTab 会从 TabBar 分离出来单独显示。
+ */
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if (context == CYLTabBarAlpha) {
         UIView *view = object;
@@ -379,7 +385,7 @@ static void *const CYLTabBarAlpha = (void*)&CYLTabBarAlpha;
 }
 
 - (void)removeAlphaObserver {
-    if (CYL_SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"15.0")) {
+    if (CYL_SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"15.0") && ![CYLConstants isUsedLiquidGlass]) {
         [_observedViews enumerateObjectsUsingBlock:^(UIView * _Nonnull obj, BOOL * _Nonnull stop) {
             [obj removeObserver:self forKeyPath:@"alpha"];
         }];
@@ -611,27 +617,67 @@ static void *const CYLTabBarAlpha = (void*)&CYLTabBarAlpha;
     [super addSubview:view];
 }
 
-// 识别ContinuousSelection手势，需要禁止长按等其他
+// 识别ContinuousSelection手势，需要代理长按等其他，处理PlusButton事件响应优先级为最优。
 - (void)addGestureRecognizer:(UIGestureRecognizer *)gestureRecognizer {
+    if (![CYLConstants isUsedLiquidGlass] || ![self isKindOfClass:[CYLTabBar class]]) {
+        [super addGestureRecognizer:gestureRecognizer];
+        return;
+    }
+    if ([gestureRecognizer cyl_isContinuousGestureRecognizer]) {
+        self.continuousGestureRecognizer = gestureRecognizer;
+//        gestureRecognizer.enabled = NO;
+        gestureRecognizer.delegate = self;
+
+    }
+    if ([gestureRecognizer cyl_isLongGestureRecognizer]) {
+//        gestureRecognizer.enabled = NO;
+        gestureRecognizer.delegate = self;
+        self.longGestureRecognizer = gestureRecognizer;
+    }
     if ([CYLConstants isUsedLiquidGlass] && [self isKindOfClass:[CYLTabBar class]] && !CYLPlusChildViewController) {
         if ([gestureRecognizer cyl_isContinuousGestureRecognizer]) {
             gestureRecognizer.delegate = self;
         }
         if ([gestureRecognizer cyl_isLongGestureRecognizer]) {
+//            gestureRecognizer.enabled = NO;
             gestureRecognizer.delegate = self;
         }
     }
     [super addGestureRecognizer:gestureRecognizer];
 }
 
+//处理PlusButton事件响应优先级为最优。
 - (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer {
+    if (![CYLConstants isUsedLiquidGlass] || ![self isKindOfClass:[CYLTabBar class]]) {
+        return YES;
+    }
     CGPoint location = [gestureRecognizer locationInView:self];
     UIView *hitView = [self hitTest:location withEvent:nil];
-    if ([hitView isKindOfClass:[CYLPlusButton class]]) {
+    if ([hitView isKindOfClass:[CYLPlusButton class]] && !CYLPlusChildViewController) {
         return NO;
     }
+    SEL actin = @selector(tabChangedToControl:);
+    
+    if (([hitView cyl_isTabButton] || [hitView isKindOfClass:[CYLPlusButton class]] )&& [self.cyl_tabBarController respondsToSelector:actin]) {
+        CYL_SUPPRESS_ARC_PERFORM_SELECTOR_LEAKS
+        (
+         //         NSUInteger delaySeconds = 0;
+         //         dispatch_time_t when = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delaySeconds * NSEC_PER_SEC));
+         //         dispatch_after(when, dispatch_get_main_queue(), ^{
+         
+         UIControl *control = (UIControl *)hitView;
+         if (control.selected) {
+             //FIX: iOS26 无法追加点击事件， 导致无法在选中状态下， 二次点击回调, 被系统手势拦截需要禁用特定手势，因为手势优先级高于 ControlEvents;
+             [self.cyl_tabBarController performSelector:actin withObject:hitView];
+         }
+         )
+    }
+    
     return YES;
 }
 
+ 
+
+ 
 @end
 

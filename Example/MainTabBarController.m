@@ -181,15 +181,7 @@ static CGFloat const CYLTabBarControllerHeight = 40.f;
 //        [UITabBar appearance].translucent = NO;
     }
 
-    // set background color
-    // 设置 TabBar 背景
-    
-    if (!CYL_IS_IOS_26) {
-        //iOS26 不推荐设置 `UITabBar.appearance().backgroundColor` 玻璃效果下，不仅无法设置背景，同时会干扰 TabBar 里的 Label 未选中颜色，因为 iOS26 里的未选中时的 Label 颜色为系统内部逻辑， 无法自定义。所以如果背景颜色， 与Label颜色一致，白底白字， 用户将无法辨认。暗黑模式下， 也会有类似问题。
-        [UITabBar appearance].translucent = NO;
-        [UITabBar appearance].barTintColor = [UIColor cyl_systemBackgroundColor];
-        [[UITabBar appearance] setBackgroundColor:[UIColor cyl_systemBackgroundColor]];
-    }
+
     
     //     [[UITabBar appearance] setBackgroundImage:[[self class] imageWithColor:[UIColor whiteColor] size:CGSizeMake(self.cyl_tabBarController.visiableTabBarSize.width, tabBarController.tabBarHeight ?: (CYL_IS_IPHONE_X ? 65 : 40))]];
     //    [[UITabBar appearance] setUnselectedItemTintColor:[UIColor systemGrayColor]];
@@ -225,8 +217,11 @@ static CGFloat const CYLTabBarControllerHeight = 40.f;
         standardAppearance.stackedLayoutAppearance = stackedLayoutAppearance;
         standardAppearance.inlineLayoutAppearance = stackedLayoutAppearance;
         standardAppearance.compactInlineLayoutAppearance = stackedLayoutAppearance;
-        
-        standardAppearance.backgroundColor = [UIColor cyl_systemBackgroundColor];
+        //FIX: #581 iOS15以上，iOS26以下，可以设置。
+        //iOS26 不推荐设置 `UITabBar.appearance().backgroundColor`。因为玻璃效果下，不仅无法设置背景，同时会干扰 TabBar 里的 Label 未选中颜色，因为 iOS26 里的未选中时的 Label 颜色为系统内部逻辑， 无法自定义。所以如果背景颜色， 与Label颜色一致，白底白字， 用户将无法辨认。暗黑模式下， 也会有类似问题。
+        if (!CYL_IS_IOS_26) {
+            standardAppearance.backgroundColor = [UIColor cyl_systemBackgroundColor];
+        }
         //shadowColor和shadowImage均可以自定义颜色, shadowColor默认高度为1, shadowImage可以自定义高度.
         standardAppearance.shadowColor = [UIColor cyl_systemGreenColor];
         // standardAppearance.shadowImage = [[self class] imageWithColor:[UIColor cyl_systemGreenColor] size:CGSizeMake(self.cyl_tabBarController.visiableTabBarSize.width, 1)];
@@ -235,6 +230,7 @@ static CGFloat const CYLTabBarControllerHeight = 40.f;
 
         self.tabBar.unselectedItemTintColor = normalAttrs[NSForegroundColorAttributeName];
         //self.tabBar.unselectedLabelColor = [UIColor redColor];
+        
     } else {
         // Override point for customization after application launch.
         // set the text Attributes
@@ -242,13 +238,26 @@ static CGFloat const CYLTabBarControllerHeight = 40.f;
         UITabBarItem *tabBar = [UITabBarItem appearance];
         [tabBar setTitleTextAttributes:normalAttrs forState:UIControlStateNormal];
         [tabBar setTitleTextAttributes:selectedAttrs forState:UIControlStateSelected];
-        
+
         // This shadow image attribute is ignored if the tab bar does not also have a custom background image.So at least set somthing.
         [[UITabBar appearance] setBackgroundImage:[[UIImage alloc] init]];
+        //FIX: #581
+        // set background color
+        // 设置 TabBar 背景 
+        [[UITabBar appearance] setBarTintColor:[UIColor cyl_systemBackgroundColor]];
+        [[UITabBar appearance] setBackgroundColor:[UIColor cyl_systemBackgroundColor]];
+
         [[UITabBar appearance] setShadowImage:[UIImage cyl_imageWithColor:[UIColor cyl_systemGreenColor] size:CGSizeMake(self.cyl_tabBarController.visiableTabBarSize.width, 1)]];
         [self.tabBarItem setTitleTextAttributes:normalAttrs forState:UIControlStateNormal];
         [self.tabBarItem setTitleTextAttributes:selectedAttrs forState:UIControlStateSelected];
     }
+    
+  
+    if (!CYL_IS_IOS_26) {
+        //iOS26 不推荐设置 `UITabBar.appearance().backgroundColor` 玻璃效果下，不仅无法设置背景，同时会干扰 TabBar 里的 Label 未选中颜色，因为 iOS26 里的未选中时的 Label 颜色为系统内部逻辑， 无法自定义。所以如果背景颜色， 与Label颜色一致，白底白字， 用户将无法辨认。暗黑模式下， 也会有类似问题。
+        [UITabBar appearance].translucent = NO;
+    }
+
 }
 
 - (void)updateTabBarCustomizationWhenTabBarItemWidthDidUpdate {
@@ -412,7 +421,7 @@ static CGFloat const CYLTabBarControllerHeight = 40.f;
                 [viewController0 cyl_setBadgeCenterOffset:CGPointMake(-5, 3)];
                 [viewController0 cyl_setBadgeRadius:11/2];
                 [viewController0 cyl_showBadgeValue:@"" animationType:CYLBadgeAnimationTypeBreathe];
-//                [self setSelectedCoverShow:YES];
+                [self setSelectedCoverShow:YES];
                 //以上对Badge的参数设置，需要在 cyl_showBadgeValue 调用之前执行。
                 //                [viewController0 cyl_showBadge];
                 

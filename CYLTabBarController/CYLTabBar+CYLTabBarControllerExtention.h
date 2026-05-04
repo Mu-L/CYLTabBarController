@@ -75,6 +75,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)cyl_stopAnimationOfAllLottieView;
 
+/*!
+ *  原生 TabButton 数量，不包含PlusButton。
+ */
 - (NSArray *)cyl_originalTabBarButtons;
 - (BOOL)cyl_hasPlusChildViewController;
 - (CGFloat)cyl_cachedXOffsetWithIndex:(CGFloat)index;

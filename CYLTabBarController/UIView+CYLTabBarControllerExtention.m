@@ -562,9 +562,11 @@ CYL_DEPRECATED_IGNORED_IMPLEMENTATIONS_POP
 
 - (void)cyl_setHidden:(BOOL)hidden {
     if (hidden) {
+        self.opaque = NO;
         self.hidden = YES;
         self.alpha = 0.0f;
     } else {
+        self.opaque = YES;
         self.hidden = NO;
         self.alpha = 1.0f;
     }

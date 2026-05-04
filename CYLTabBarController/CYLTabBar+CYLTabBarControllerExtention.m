@@ -48,7 +48,6 @@
 }
 
 - (NSArray *)cyl_originalTabBarButtons {
-    //FIXME:  _tabBarButtonArray == 4 but tabBarButtons == 2
     NSArray *tabBarButtons = [self cyl_tabBarButtonFromTabBarSubviews:[self cyl_sortedSubviews]];
     return tabBarButtons;
 }
@@ -599,9 +598,7 @@
     
     
     return [self cyl_allTabViewsFrom:contentView] ?: self.subviews;
-    
 }
-
 
 - (UIView *)cyl_platterLiquidLensView {
     UIView *contentView = nil;

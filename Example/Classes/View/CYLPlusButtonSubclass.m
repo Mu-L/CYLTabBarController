@@ -102,46 +102,61 @@
     [button setImage:normalButtonImage forState:UIControlStateNormal];
     [button setImage:hlightButtonImage forState:UIControlStateHighlighted];
     [button setImage:hlightButtonImage forState:UIControlStateSelected];
-    [button setTintColor:[UIColor colorWithRed:0/255.0f green:255/255.0f blue:189/255.0f alpha:1]];
+    //    [button setTintColor:[UIColor colorWithRed:0/255.0f green:255/255.0f blue:189/255.0f alpha:1]];
     button.contentMode = UIViewContentModeCenter;
     button.imageView.contentMode = UIViewContentModeScaleAspectFit;
-//    button.backgroundColor = UIColor.redColor;
+    
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 150000
     if (@available(iOS 15.0, *)) {
-        // When using UIButtonConfiguration, imageEdgeInsets is ignored.
-        // Use contentInsets and imagePadding to achieve similar spacing.
+        // Ensure configuration exists
         UIButtonConfiguration *config = button.configuration ?: [UIButtonConfiguration plainButtonConfiguration];
-        // Apply vertical padding similar to top:5 bottom:-5 intent by increasing top inset.
-        // Note: Negative bottom insets are not supported; adjust total height via contentInsets.
+        config.baseBackgroundColor = [UIColor clearColor];
+        // ===== Highlight behavior (no dimming) =====
+        __weak typeof(button) weakButton = button;
+        UIButtonConfigurationUpdateHandler existingHandler = button.configurationUpdateHandler;
+        button.configurationUpdateHandler = ^(UIButton *btn) {
+            if (existingHandler) { existingHandler(btn); }
+            //效果等同于覆写 setHighlighted: 方法，点击后，不展示高亮效果。
+            btn.tintAdjustmentMode = UIViewTintAdjustmentModeNormal;
+            btn.imageView.alpha = 1.0;
+            weakButton.titleLabel.textAlignment = NSTextAlignmentCenter;
+        };
+        
+        // ===== Insets / layout =====
         NSDirectionalEdgeInsets contentInsets = config.contentInsets;
         contentInsets.top += 0;
-        contentInsets.bottom += 0.0; // keep as-is; layout below sets explicit frame
+        contentInsets.bottom += 0;
         config.contentInsets = contentInsets;
-        // Optional: if the button has a title, this controls spacing between image and title.
-        config.imagePadding = config.imagePadding; // keep existing value (no-op placeholder)
+        
+        // Keep existing image padding (no-op but explicit)
+        config.imagePadding = config.imagePadding;
+        
         button.configuration = config;
-    } else {
+        
+    } else
+#endif
+    {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        
+        // iOS < 15 fallback
+        //效果等同于覆写 setHighlighted: 方法，点击后，不展示高亮效果。
+        button.adjustsImageWhenHighlighted = NO;
         button.imageEdgeInsets = UIEdgeInsetsMake(5, 0, -5, 0);
+        button.backgroundColor = UIColor.clearColor;
 #pragma clang diagnostic pop
     }
-#else
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    button.imageEdgeInsets = UIEdgeInsetsMake(5, 0, -5, 0);
-#pragma clang diagnostic pop
-#endif
-
     button.titleLabel.font = [UIFont systemFontOfSize:9.5];
     [button sizeToFit]; // or set frame in this way `button.frame = CGRectMake(0.0, 0.0, 250, 100);`
     button.frame = CGRectMake(0.0, 0.0, 55, 59);
     button.bounds = CGRectMake(0.0, 0.0, 55, 59);
-
+    
     
     // if you use `+plusChildViewController` , do not addTarget to plusButton.
-    [button addTarget:button action:@selector(clickPublish) forControlEvents:UIControlEventTouchUpInside];
-    button.cyl_shouldNotSelect = YES;
+    SEL action = @selector(clickPublish);
+    [button removeTarget:self action:action forControlEvents:UIControlEventTouchUpInside];
+    [button addTarget:button action:action forControlEvents:UIControlEventTouchUpInside];
+    button.cyl_shouldNotSelect = NO;
     return button;
 }
 
@@ -266,18 +281,18 @@
 #pragma clang diagnostic pop
 #pragma mark - CYLPlusButtonSubclassing
 
-//+ (UIViewController *)plusChildViewController {
-//    UIViewController *plusChildViewController = [[UIViewController alloc] init];
-//    plusChildViewController.view.backgroundColor = [UIColor redColor];
-//    plusChildViewController.navigationItem.title = @"PlusChildViewController";
-//    UIViewController *plusChildNavigationController = [[UINavigationController alloc]
-//                                                   initWithRootViewController:plusChildViewController];
-//    return plusChildNavigationController;
-//}
-//
-//+ (NSUInteger)indexOfPlusButtonInTabBar {
-//    return 2;
-//}
++ (UIViewController *)plusChildViewController {
+    UIViewController *plusChildViewController = [[UIViewController alloc] init];
+    plusChildViewController.view.backgroundColor = [UIColor redColor];
+    plusChildViewController.navigationItem.title = @"PlusChildViewController";
+    UIViewController *plusChildNavigationController = [[UINavigationController alloc]
+                                                   initWithRootViewController:plusChildViewController];
+    return plusChildNavigationController;
+}
+
++ (NSUInteger)indexOfPlusButtonInTabBar {
+    return 2;
+}
 
 + (BOOL)shouldSelectPlusChildViewController {
     BOOL isSelected = CYLExternPlusButton.selected;
@@ -321,3 +336,4 @@
 }
 
 @end
+

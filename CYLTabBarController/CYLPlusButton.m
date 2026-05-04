@@ -38,7 +38,7 @@ UIViewController *CYLPlusChildViewController = nil;
     UIButton<CYLPlusButtonSubclassing> *plusButton = [class plusButton];
     CYLExternPlusButton = plusButton;
     CYLPlusButtonWidth = plusButton.frame.size.width;
-//    [CYLExternPlusButton getSnapshot];
+
     if ([[self class] respondsToSelector:@selector(plusChildViewController)]) {
         CYLPlusChildViewController = [class plusChildViewController];
         if ([[self class] respondsToSelector:@selector(tabBarContext)]) {
@@ -52,7 +52,7 @@ UIViewController *CYLPlusChildViewController = nil;
         [[self class] addSelectViewControllerTarget:plusButton];
         //液态玻璃效果，不允许点击后的特效， 仅能使用系统的玻璃效果。
         if ([CYLConstants isUsedLiquidGlass]) {
-            plusButton.cyl_shouldNotSelect = YES;
+//            plusButton.cyl_shouldNotSelect = YES;
         }
         if ([[self class] respondsToSelector:@selector(indexOfPlusButtonInTabBar)]) {
             CYLPlusButtonIndex = [[self class] indexOfPlusButtonInTabBar];
@@ -93,10 +93,10 @@ CYL_DEPRECATED_IGNORED_IMPLEMENTATIONS_POP
     NSInteger index = [tabBarController.viewControllers indexOfObject:CYLPlusChildViewController];
     if (NSNotFound != index && (index < tabBarController.viewControllers.count)) {
         [tabBarController setSelectedIndex:index];
-        if (!sender.cyl_shouldNotSelect) {
+        if (NO == sender.cyl_shouldNotSelect) { 
             sender.selected = YES;
+            [tabBarController tabChangedToControl:self];
         }
-
     }
 }
 
@@ -121,7 +121,7 @@ CYL_DEPRECATED_IGNORED_IMPLEMENTATIONS_POP
  *  按钮选中状态下点击先显示normal状态的颜色，松开时再回到selected状态下颜色。
  *  重写此方法即不会出现上述情况，与 UITabBarButton 相似
  */
-- (void)setHighlighted:(BOOL)highlighted {}
+//- (void)setHighlighted:(BOOL)highlighted {}
 
 - (CGRect)touchableRect {
     return self.frame;
@@ -143,10 +143,27 @@ CYL_DEPRECATED_IGNORED_IMPLEMENTATIONS_POP
     return _snapshot;
 }
 
++ (UIButton *)selectedContentView {
+    Class<CYLPlusButtonSubclassing> class = self;
+    UIButton<CYLPlusButtonSubclassing> *plusButton = [class plusButton];
+    if (NO == plusButton.cyl_shouldNotSelect) {
+        plusButton.selected = YES;
+    }
+    return plusButton;
+}
+
 - (UIButton *)selectedContentView {
     
     if (_selectedContentView) {
         return _selectedContentView;
+    }
+    
+    if ([[self class] respondsToSelector:@selector(selectedContentView)]) {
+        UIButton *button = [[self class] performSelector:@selector(selectedContentView)];
+        if (button) {
+            _selectedContentView = button;
+            return _selectedContentView;
+        }
     }
     UIButton *selectedContentView = [UIButton buttonWithType:UIButtonTypeCustom];
     
